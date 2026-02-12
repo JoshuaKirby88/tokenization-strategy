@@ -1,3 +1,5 @@
+from collections import Counter
+
 from ai_sdk import generate_text, openai
 from ai_sdk.generate_text import GenerateTextResult
 from dotenv import load_dotenv
@@ -11,6 +13,18 @@ tokenizer = Tokenizer()
 
 
 class TaskRunner:
+    @staticmethod
+    def compute_f1(prediction: str, ground_truth: str):
+        prediction_tokens = list(prediction)
+        ground_truth_tokens = list(ground_truth)
+        common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+        num_same = sum(common.values())
+        if num_same == 0:
+            return 0.0
+        precision = 1.0 * num_same / len(prediction_tokens)
+        recall = 1.0 * num_same / len(ground_truth_tokens)
+        return (2 * precision * recall) / (precision + recall)
+
     configs: dict[TaskType, TaskConfig] = {
         "multiple_choice": TaskConfig(
             get_system_prompt=lambda task, strategy: (
@@ -24,11 +38,15 @@ class TaskRunner:
                     tokenizer.tokenize(option, strategy) for option in task.options
                 )
             ),
-            evaluate=lambda task, strategy, response: any(
-                tokenizer.normalize(response, strategy)
-                == tokenizer.normalize(option, strategy)
-                and task.options.index(option) in task.ground_truths
-                for option in task.options
+            evaluate=lambda task, strategy, response: (
+                1.0
+                if any(
+                    tokenizer.normalize(response, strategy)
+                    == tokenizer.normalize(option, strategy)
+                    and task.options.index(option) in task.ground_truths
+                    for option in task.options
+                )
+                else 0.0
             ),
         ),
         "nli": TaskConfig(
@@ -42,11 +60,15 @@ class TaskRunner:
                 + "Choices:\n"
                 + "\n".join(tokenizer.tokenize(label, strategy) for label in NIL_LABELS)
             ),
-            evaluate=lambda task, strategy, response: any(
-                tokenizer.normalize(response, strategy)
-                == tokenizer.normalize(label, strategy)
-                and NIL_LABELS.index(label) in task.ground_truths
-                for label in NIL_LABELS
+            evaluate=lambda task, strategy, response: (
+                1.0
+                if any(
+                    tokenizer.normalize(response, strategy)
+                    == tokenizer.normalize(label, strategy)
+                    and NIL_LABELS.index(label) in task.ground_truths
+                    for label in NIL_LABELS
+                )
+                else 0.0
             ),
         ),
         "extraction": TaskConfig(
@@ -57,10 +79,15 @@ class TaskRunner:
                 f"Context: {tokenizer.tokenize(task.context or '', strategy)}\n"
                 + f"Question: {tokenizer.tokenize(task.question, strategy)}"
             ),
-            evaluate=lambda task, strategy, response: any(
-                tokenizer.normalize(str(gt), strategy)
-                == tokenizer.normalize(response, strategy)
-                for gt in task.ground_truths
+            evaluate=lambda task, strategy, response: max(
+                (
+                    TaskRunner.compute_f1(
+                        tokenizer.normalize(response, strategy),
+                        tokenizer.normalize(str(gt), strategy),
+                    )
+                    for gt in task.ground_truths
+                ),
+                default=0.0,
             ),
         ),
         "correction": TaskConfig(
@@ -73,10 +100,15 @@ class TaskRunner:
             get_user_prompt=lambda task, strategy: (
                 f"Text: {tokenizer.tokenize(task.question, strategy)}"
             ),
-            evaluate=lambda task, strategy, response: all(
-                tokenizer.normalize(str(gt), strategy)
-                in tokenizer.normalize(response, strategy)
-                for gt in task.ground_truths
+            evaluate=lambda task, strategy, response: (
+                sum(
+                    1.0
+                    if tokenizer.normalize(str(gt), strategy)
+                    in tokenizer.normalize(response, strategy)
+                    else 0.0
+                    for gt in task.ground_truths
+                )
+                / len(task.ground_truths)
             ),
         ),
         "char_counting": TaskConfig(
@@ -87,8 +119,10 @@ class TaskRunner:
                 f"Text: {tokenizer.tokenize(task.context or '', strategy)}\n"
                 + f"Character: {task.question}"
             ),
-            evaluate=lambda task, strategy, response: any(
-                str(gt) == response.strip() for gt in task.ground_truths
+            evaluate=lambda task, strategy, response: (
+                1.0
+                if any(str(gt) == response.strip() for gt in task.ground_truths)
+                else 0.0
             ),
         ),
     }
@@ -125,6 +159,7 @@ class TaskRunner:
                 response=res.text,
                 dollars=self.get_cost_from_response(res),
                 evaluation=config.evaluate(task, strategy, res.text),
+                ground_truths=task.ground_truths,
             )
             results.append(result)
 

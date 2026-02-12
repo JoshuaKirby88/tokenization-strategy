@@ -42,6 +42,17 @@ class Runner:
         ) as f:
             json.dump(asdict(run_result), f, indent=4, ensure_ascii=False)
 
+        print(f"\nResults for {dataset_name} ({model}):")
+        strategies = sorted(list({r.tokenization_strategy for r in task_results}))
+        for strategy in strategies:
+            scores = [
+                r.evaluation
+                for r in task_results
+                if r.tokenization_strategy == strategy
+            ]
+            avg_score = sum(scores) / len(scores) if scores else 0
+            print(f"  {strategy:10}: {avg_score:.4f}")
+
 
 if __name__ == "__main__":
     runner = Runner()

@@ -5,8 +5,11 @@ from typing import Any, cast
 from datasets.combine import concatenate_datasets
 from datasets.dataset_dict import DatasetDict
 from datasets.load import load_dataset
+from datasets.utils.logging import set_verbosity_error
 
 from src.dataset.char_count import prepare_char_count
+
+set_verbosity_error()
 from src.dataset.jwtd import prepare_jwtd
 from src.dataset.model import (
     JNLI,
@@ -41,7 +44,7 @@ class DatasetLoader:
             path="shunk031/JGLUE",
             name="JNLI",
             transform=lambda r: Task(
-                id=r["id"],
+                id=r["sentence_pair_id"],
                 type="nli",
                 context=r["sentence1"],
                 question=r["sentence2"],
