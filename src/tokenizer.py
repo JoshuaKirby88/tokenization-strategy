@@ -31,6 +31,7 @@ class Tokenizer:
         return self.tagger.parse(string).strip()
 
     def normalize(self, s: str, strategy: TokenizationStrategy):
+        s = s.replace("**", "").replace("__", "")
         if strategy == "baseline":
             return s.strip()
         return s.replace(" ", "").strip()

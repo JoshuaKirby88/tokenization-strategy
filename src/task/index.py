@@ -14,7 +14,7 @@ class TaskRunner:
     configs: dict[TaskType, TaskConfig] = {
         "multiple_choice": TaskConfig(
             get_system_prompt=lambda task, strategy: (
-                "Answer with a single choice label only."
+                "Answer with a single choice label only. Do not use markdown or extra formatting."
             ),
             get_user_prompt=lambda task, strategy: (
                 f"Question: {tokenizer.tokenize(task.question, strategy)}\n"
@@ -33,7 +33,7 @@ class TaskRunner:
         ),
         "nli": TaskConfig(
             get_system_prompt=lambda task, strategy: (
-                "Answer with a single choice label only."
+                "Answer with a single choice label only. Do not use markdown or extra formatting."
             ),
             get_user_prompt=lambda task, strategy: (
                 f"Premise: {tokenizer.tokenize(task.context or '', strategy)}\n"
@@ -51,7 +51,7 @@ class TaskRunner:
         ),
         "extraction": TaskConfig(
             get_system_prompt=lambda task, strategy: (
-                'Extract the answer from the "Context", and return only the answer.'
+                'Extract the answer from the "Context", and return only the answer. Do not use markdown or extra formatting.'
             ),
             get_user_prompt=lambda task, strategy: (
                 f"Context: {tokenizer.tokenize(task.context or '', strategy)}\n"
@@ -68,7 +68,7 @@ class TaskRunner:
                 'Identify and correct typos in "Text".\n'
                 + 'Return corrections in the format: "Typo -> Correction".\n'
                 + "If multiple exist, list them one per line.\n"
-                + "Return only the corrections."
+                + "Return only the corrections. Do not use markdown or extra formatting."
             ),
             get_user_prompt=lambda task, strategy: (
                 f"Text: {tokenizer.tokenize(task.question, strategy)}"

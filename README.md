@@ -44,7 +44,6 @@ De-Tokenization will improve LLM's ability to perform fine-grained analysis on i
 - JSQuAD (shunk031/JGLUE): Needle-in-a-haystack, e.g. Question="When did the capital move to Tokyo?" Answer="1868"
 - Synthetic Data (character counting): Count number of occurrences of "が" in "私は蝶が好きですが、蛾が嫌いです。"
 - Japanese Wikipedia Typo Dataset: Question="Identify all typos in ..." Answer="[Typo] -> [Correction]"
-- Grammar pattern extraction (from my other project with ~600 samples): Extract all "〜たり〜たり" from "..."
 
 ## Related Papers
 
