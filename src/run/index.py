@@ -5,7 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from src.dataset.index import DatasetLoader
-from src.dataset.model import DatasetName
+from src.dataset.model import DATASET_NAMES, DatasetName
 from src.run.model import RunResult
 from src.task.index import TaskRunner
 from src.task.model import Task
@@ -18,6 +18,7 @@ class Runner:
     task_runner = TaskRunner()
 
     def run(self, dataset_name: DatasetName, model: str, n: int):
+        print(f"Running {dataset_name} with {model} for n={n}...")
         tasks: list[Task] = []
         for i, task in enumerate(self.dataset_loader.load_tasks(dataset_name)):
             if i == n:
@@ -46,18 +47,19 @@ class Runner:
         ) as f:
             json.dump(asdict(run_result), f, indent=4, ensure_ascii=False)
 
-        print(f"\nResults for {dataset_name} ({model}):")
-        strategies = sorted(list({r.tokenization_strategy for r in task_results}))
-        for strategy in strategies:
-            scores = [
-                r.evaluation
-                for r in task_results
-                if r.tokenization_strategy == strategy
-            ]
-            avg_score = sum(scores) / len(scores) if scores else 0
-            print(f"  {strategy:10}: {avg_score:.4f}")
+    def run_batch(self, dataset_names: list[DatasetName], models: list[str], n: int):
+        for model in models:
+            for dataset_name in dataset_names:
+                try:
+                    self.run(dataset_name=dataset_name, model=model, n=n)
+                except Exception as e:
+                    print(f"Error running {dataset_name} with {model}: {e}")
 
 
 if __name__ == "__main__":
     runner = Runner()
-    runner.run(dataset_name="JCommonsenseQA", model="mistralai/ministral-3b-2512", n=1)
+    runner.run_batch(
+        dataset_names=DATASET_NAMES,
+        models=["mistralai/ministral-3b-2512"],
+        n=5,
+    )
