@@ -12,12 +12,7 @@ JWTD_FILE = Path("data/jwtd/test.jsonl")
 ID_PREFIX = "char_count_wiki"
 
 
-def generate_char_count_dataset(
-    n_samples: int,
-    target_length: int,
-    length_variance: float,
-    target_chars: list[str],
-):
+def generate_char_count_dataset(n_samples: int, target_length: int, length_variance: float, target_chars: list[str]):
     samples: list[CharCount] = []
     prepare_jwtd()
 
@@ -79,23 +74,6 @@ def prepare_char_count():
             500,
             150,
             0.2,
-            [
-                "が",
-                "は",
-                "を",
-                "に",
-                "の",
-                "も",
-                "た",
-                "て",
-                "だ",
-                "る",
-                "。",
-                "、",
-                "日",
-                "本",
-                "学",
-                "者",
-            ],
+            ["が", "は", "を", "に", "の", "も", "た", "て", "だ", "る", "。", "、", "日", "本", "学", "者"],
         )
         print(f"CharCount dataset generated at {OUTPUT_FILE}")

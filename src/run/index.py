@@ -6,13 +6,7 @@ from pathlib import Path
 
 from src.dataset.index import DatasetLoader
 from src.dataset.model import DATASET_NAMES, DatasetName
-from src.run.model import (
-    BatchResult,
-    DatasetResult,
-    ModelResut,
-    ResultSummary,
-    StrategySummary,
-)
+from src.run.model import BatchResult, DatasetResult, ModelResut, ResultSummary, StrategySummary
 from src.task.index import TaskRunner
 from src.task.model import Task, TaskResult
 from src.tokenizer import TOKENIZATION_STRATEGIES, TokenizationStrategy
@@ -24,13 +18,7 @@ class Runner:
     dataset_loader = DatasetLoader()
     task_runner = TaskRunner()
 
-    def run(
-        self,
-        model: str,
-        dataset_name: DatasetName,
-        strategies: list[TokenizationStrategy],
-        n: int,
-    ):
+    def run(self, model: str, dataset_name: DatasetName, strategies: list[TokenizationStrategy], n: int):
         print(f"Running {dataset_name} with {model} for n={n}...")
         tasks: list[Task] = []
         for i, task in enumerate(self.dataset_loader.load_tasks(dataset_name)):
@@ -39,33 +27,18 @@ class Runner:
             tasks.append(task)
 
         with ThreadPoolExecutor(max_workers=5) as executor:
-            strategy_to_result_list: list[dict[TokenizationStrategy, TaskResult]] = (
-                list(
-                    executor.map(
-                        lambda t: self.task_runner.run(
-                            model=model, strategies=strategies, task=t
-                        ),
-                        tasks,
-                    )
-                )
+            strategy_to_result_list: list[dict[TokenizationStrategy, TaskResult]] = list(
+                executor.map(lambda t: self.task_runner.run(model=model, strategies=strategies, task=t), tasks)
             )
 
         return DatasetResult(
-            dollars=sum(
-                r.dollars for s_to_r in strategy_to_result_list for r in s_to_r.values()
-            ),
+            dollars=sum(r.dollars for s_to_r in strategy_to_result_list for r in s_to_r.values()),
             summary=self.calculate_summary(strategies, strategy_to_result_list),
             strategy_results=strategy_to_result_list,
         )
 
-    def calculate_summary(
-        self,
-        strategies: list[TokenizationStrategy],
-        strategy_to_result_list: list[dict[TokenizationStrategy, TaskResult]],
-    ):
-        baseline_scores = [
-            s_to_r["baseline"].evaluation for s_to_r in strategy_to_result_list
-        ]
+    def calculate_summary(self, strategies: list[TokenizationStrategy], strategy_to_result_list: list[dict[TokenizationStrategy, TaskResult]]):
+        baseline_scores = [s_to_r["baseline"].evaluation for s_to_r in strategy_to_result_list]
         baseline_avg = sum(baseline_scores) / len(baseline_scores)
 
         summary: ResultSummary = {}
@@ -77,42 +50,26 @@ class Runner:
             avg = sum(scores) / len(scores)
 
             summary[strategy] = StrategySummary(
-                avg_score=avg,
-                total_dollars=sum(dollars_list),
-                delta=avg - baseline_avg if strategy != "baseline" else None,
+                avg_score=avg, total_dollars=sum(dollars_list), delta=avg - baseline_avg if strategy != "baseline" else None
             )
 
         return summary
 
-    def run_batch(
-        self,
-        models: list[str],
-        dataset_names: list[DatasetName],
-        strategies: list[TokenizationStrategy],
-        n: int,
-    ):
+    def run_batch(self, models: list[str], dataset_names: list[DatasetName], strategies: list[TokenizationStrategy], n: int):
         model_results: dict[str, ModelResut] = {}
 
         for model in models:
             dataset_results: dict[DatasetName, DatasetResult] = {}
             for dataset_name in dataset_names:
                 try:
-                    dataset_results[dataset_name] = self.run(
-                        model=model,
-                        dataset_name=dataset_name,
-                        strategies=strategies,
-                        n=n,
-                    )
+                    dataset_results[dataset_name] = self.run(model=model, dataset_name=dataset_name, strategies=strategies, n=n)
                 except Exception as e:
                     print(f"Error running {dataset_name} with {model}: {e}")
 
             if dataset_results:
                 model_results[model] = ModelResut(
                     dollars=sum(r.dollars for r in dataset_results.values()),
-                    summary=self.aggregate_summaries(
-                        strategies=strategies,
-                        summaries=[r.summary for r in dataset_results.values()],
-                    ),
+                    summary=self.aggregate_summaries(strategies=strategies, summaries=[r.summary for r in dataset_results.values()]),
                     dataset_results=dataset_results,
                 )
 
@@ -124,28 +81,17 @@ class Runner:
             datasets=dataset_names,
             strategies=strategies,
             dollars=sum(m.dollars for m in model_results.values()),
-            summary=self.aggregate_summaries(
-                strategies=strategies,
-                summaries=[m.summary for m in model_results.values()],
-            ),
+            summary=self.aggregate_summaries(strategies=strategies, summaries=[m.summary for m in model_results.values()]),
             model_results=model_results,
         )
 
         RESULT_DIR.mkdir(parents=True, exist_ok=True)
-        result_path = (
-            RESULT_DIR / f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        )
-        with open(
-            result_path,
-            "w",
-            encoding="utf-8",
-        ) as f:
+        result_path = RESULT_DIR / f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(result_path, "w", encoding="utf-8") as f:
             json.dump(asdict(batch_result), f, indent=4, ensure_ascii=False)
         print(f"Results saved to {result_path}")
 
-    def aggregate_summaries(
-        self, strategies: list[TokenizationStrategy], summaries: list[ResultSummary]
-    ):
+    def aggregate_summaries(self, strategies: list[TokenizationStrategy], summaries: list[ResultSummary]):
         baseline_scores = [s["baseline"].avg_score for s in summaries]
         baseline_avg = sum(baseline_scores) / len(baseline_scores)
 
@@ -156,18 +102,11 @@ class Runner:
             avg = sum(scores) / len(scores)
 
             root_summary[strategy] = StrategySummary(
-                avg_score=avg,
-                total_dollars=sum(dollars),
-                delta=avg - baseline_avg if strategy != "baseline" else None,
+                avg_score=avg, total_dollars=sum(dollars), delta=avg - baseline_avg if strategy != "baseline" else None
             )
         return root_summary
 
 
 if __name__ == "__main__":
     runner = Runner()
-    runner.run_batch(
-        strategies=TOKENIZATION_STRATEGIES,
-        models=["mistralai/ministral-3b-2512"],
-        dataset_names=DATASET_NAMES,
-        n=50,
-    )
+    runner.run_batch(strategies=TOKENIZATION_STRATEGIES, models=["mistralai/ministral-3b-2512"], dataset_names=DATASET_NAMES, n=10)

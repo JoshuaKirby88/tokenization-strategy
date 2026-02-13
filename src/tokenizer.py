@@ -6,11 +6,7 @@ from fugashi import Tagger
 TokenizationStrategy = Literal["baseline", "character", "morphology"]
 
 
-TOKENIZATION_STRATEGIES: list[TokenizationStrategy] = [
-    "baseline",
-    "character",
-    "morphology",
-]
+TOKENIZATION_STRATEGIES: list[TokenizationStrategy] = ["baseline", "character", "morphology"]
 
 
 class Tokenizer:

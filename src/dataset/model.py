@@ -5,13 +5,7 @@ from typing import Generic, Literal, TypedDict, TypeVar
 from src.task.model import Task
 
 DatasetName = Literal["JCommonsenseQA", "JNLI", "JSQuAD", "JWTD", "CharCount"]
-DATASET_NAMES: list[DatasetName] = [
-    "JCommonsenseQA",
-    "JNLI",
-    "JSQuAD",
-    "JWTD",
-    "CharCount",
-]
+DATASET_NAMES: list[DatasetName] = ["JCommonsenseQA", "JNLI", "JSQuAD", "JWTD", "CharCount"]
 
 T = TypeVar("T")
 
@@ -36,7 +30,7 @@ class JCommonsenseQA(TypedDict):
 
 
 class JNLI(TypedDict):
-    id: str
+    sentence_pair_id: str
     sentence1: str
     sentence2: str
     label: int

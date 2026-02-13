@@ -3,16 +3,8 @@ from typing import Callable, Literal
 
 from src.tokenizer import TokenizationStrategy
 
-TaskType = Literal[
-    "multiple_choice", "nli", "extraction", "correction", "char_counting"
-]
-TASK_TYPES: list[TaskType] = [
-    "multiple_choice",
-    "nli",
-    "extraction",
-    "correction",
-    "char_counting",
-]
+TaskType = Literal["multiple_choice", "nli", "extraction", "correction", "char_counting"]
+TASK_TYPES: list[TaskType] = ["multiple_choice", "nli", "extraction", "correction", "char_counting"]
 
 NIL_LABELS = ["Entailment", "Contradiction", "Neutral"]
 

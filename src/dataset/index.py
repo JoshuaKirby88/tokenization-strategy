@@ -9,20 +9,12 @@ from datasets.utils.logging import set_verbosity_error
 from dotenv import load_dotenv
 
 from src.dataset.char_count import prepare_char_count
+from src.dataset.jwtd import prepare_jwtd
+from src.dataset.model import JNLI, CharCount, DatasetConfig, DatasetName, JCommonsenseQA, JSQuADT, WikipediaTypo
+from src.task.model import Task
 
 load_dotenv()
 set_verbosity_error()
-from src.dataset.jwtd import prepare_jwtd
-from src.dataset.model import (
-    JNLI,
-    CharCount,
-    DatasetConfig,
-    DatasetName,
-    JCommonsenseQA,
-    JSQuADT,
-    WikipediaTypo,
-)
-from src.task.model import Task
 
 os.environ["HF_DATASETS_TRUST_REMOTE_CODE"] = "1"
 
@@ -46,12 +38,7 @@ class DatasetLoader:
             path="shunk031/JGLUE",
             name="JNLI",
             transform=lambda r: Task(
-                id=r["sentence_pair_id"],
-                type="nli",
-                context=r["sentence1"],
-                question=r["sentence2"],
-                options=[],
-                ground_truths=[r["label"]],
+                id=r["sentence_pair_id"], type="nli", context=r["sentence1"], question=r["sentence2"], options=[], ground_truths=[r["label"]]
             ),
             prepare=None,
         ),
@@ -59,12 +46,7 @@ class DatasetLoader:
             path="shunk031/JGLUE",
             name="JSQuAD",
             transform=lambda r: Task(
-                id=r["id"],
-                type="extraction",
-                context=r["context"],
-                question=r["question"],
-                options=[],
-                ground_truths=r["answers"]["text"],
+                id=r["id"], type="extraction", context=r["context"], question=r["question"], options=[], ground_truths=r["answers"]["text"]
             ),
             prepare=None,
         ),
@@ -86,12 +68,7 @@ class DatasetLoader:
             name="data/char_count/test.jsonl",
             prepare=prepare_char_count,
             transform=lambda r: Task(
-                id=r["id"],
-                type="char_counting",
-                context=r["text"],
-                question=r["character"],
-                options=[],
-                ground_truths=[r["count"]],
+                id=r["id"], type="char_counting", context=r["text"], question=r["character"], options=[], ground_truths=[r["count"]]
             ),
         ),
     }
@@ -105,9 +82,7 @@ class DatasetLoader:
             with open(config.name, "r", encoding="utf-8") as f:
                 return [json.loads(line) for line in f]
 
-        dataset = cast(
-            DatasetDict, load_dataset(config.path, config.name, trust_remote_code=True)
-        )
+        dataset = cast(DatasetDict, load_dataset(config.path, config.name, trust_remote_code=True))
         return concatenate_datasets([dataset["train"], dataset["validation"]])
 
     def load_tasks(self, dataset: DatasetName):
